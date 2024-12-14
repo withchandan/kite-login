@@ -1,21 +1,19 @@
-import requests
-import pyotp
 import hashlib
 import os
-import boto3
 import traceback
 from datetime import datetime
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
+
+import boto3
+import pyotp
+import requests
 from boto3.dynamodb.conditions import Key
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TABLE = "Trading"
 
-dynamodb = boto3.resource(
-    "dynamodb",
-    region_name="ap-south-1",
-)
+dynamodb = boto3.resource("dynamodb", region_name="ap-south-1")
 tradingTable = dynamodb.Table(TABLE)
 
 
@@ -88,7 +86,9 @@ def login(user):
 
     print("res3 url", res3.url)
 
-    requestToken = parse_qs(res3.url)["request_token"][0]
+    parsedUrl = urlparse(res3.url)
+    queryParams = parse_qs(parsedUrl.query)
+    requestToken = queryParams.get("request_token", [None])[0]
 
     # Get access token
     h = hashlib.sha256(
@@ -110,7 +110,7 @@ def login(user):
     return res4["data"]["access_token"]
 
 
-def handler(event, context):
+def handler(_event, _context):
     users = getAllUsers()
 
     for user in users:
